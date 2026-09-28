@@ -1,6 +1,6 @@
-# Content Credentials Validator
+# AI Label Check
 
-Drop in an image and see its [C2PA](https://c2pa.org/) Content Credentials: who signed it, which
+Was this image made with AI? Drop in an image and see its [C2PA](https://c2pa.org/) Content Credentials: who signed it, which
 app or device produced it, what edits were recorded, and whether generative AI was declared.
 Everything runs in the browser via WebAssembly, so files are never uploaded.
 

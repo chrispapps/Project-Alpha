@@ -1,4 +1,4 @@
-// Service worker for the Content Credentials Validator.
+// Service worker for AI Label Check.
 //
 // - Keeps the app usable offline: the page, its hashed JS/CSS, the C2PA Wasm
 //   binary and the trust list are cached as they're used. Images are checked

@@ -1,8 +1,10 @@
 # AI Label Check
 
-Was this image made with AI? Drop in an image and see its [C2PA](https://c2pa.org/) Content Credentials: who signed it, which
-app or device produced it, what edits were recorded, and whether generative AI was declared.
-Everything runs in the browser via WebAssembly, so files are never uploaded.
+Was this made with AI? Drop in an image, video (MP4, MOV) or audio file (MP3, WAV, M4A, FLAC), or
+paste a link to one, and see its [C2PA](https://c2pa.org/) Content Credentials: who signed it,
+which app or device produced it, what edits were recorded, and whether generative AI was declared.
+Checking runs in the browser via WebAssembly, so uploaded files never leave the device. Links are
+downloaded through the app's server (see [Checking links](#checking-links)).
 
 Built with Next.js (App Router), TypeScript, Tailwind CSS and
 [`@contentauth/c2pa-web`](https://www.npmjs.com/package/@contentauth/c2pa-web), the official
@@ -51,6 +53,32 @@ npm run dev        # http://localhost:3000
 - `src/components/` holds the drop zone (`Validator.tsx`) and the results (`ResultPanel.tsx`), with
   states for valid, invalid/tampered, no credentials, and unreadable files.
 
+## Checking links
+
+Browsers can't download most files from other sites, so "Check a link" goes through
+`src/app/api/fetch-media/route.ts`, which streams the file to the browser; the check itself still
+runs in the browser and nothing is stored. Because it makes requests from the server,
+`src/lib/server/fetch-media.ts` is locked down:
+
+- **No private network access (SSRF)**: only `http`/`https` on standard ports, and every
+  connection, including each redirect hop, is checked against private, loopback, link-local and
+  reserved IPv4/IPv6 ranges at connect time, so DNS tricks can't get around it.
+- **Only media comes back**: images, video and audio (by content type or by sniffing the file's
+  first bytes), up to 200 MB and 5 redirects. Responses are sent as downloads with a sandboxing
+  CSP, so a fetched SVG or similar can never run as a page on this site.
+- **App-only**: requests must carry the `x-ai-label-check` header. Browsers won't send it
+  cross-site without a CORS approval this route never gives, so other websites can't use it as a
+  proxy. Scripts can still call it directly, so consider a Vercel Firewall rate-limit rule on
+  `/api/fetch-media` once the app has traffic.
+- **Web pages**: a link to a page returns the image/video it features (`og:image`, `og:video`) so
+  the user can pick one.
+- **Social platforms** (Instagram, TikTok, YouTube, Facebook, X, Threads, Snapchat, LinkedIn) are
+  recognised before any request: they don't allow downloads and strip Content Credentials, so the
+  app points people to the platform's own AI label instead.
+
+`MEDIA_FETCH_ALLOW_HOSTS` (comma-separated `host:port`) lets the test suite's local fixture server
+through the private-address block. **Never set it in production.**
+
 ## Installable app
 
 The validator is a Progressive Web App (PWA):
@@ -84,7 +112,7 @@ on the [official C2PA trust list](https://github.com/c2pa-org/conformance-public
 
 ## Deploying
 
-The app is fully static and needs no server-side secrets. On Vercel, import the repository and
+The app needs no server-side secrets; its only server code is the link fetcher. On Vercel, import the repository and
 deploy with the defaults; `vercel.json` pins the framework to Next.js so it isn't misdetected. On any other host, run `npm ci && npm run build && npm start` (Node 20.9+).
 
 - `npm ci` / `npm run build` copy the Wasm binary into `public/c2pa/`, so no extra build step is
@@ -105,9 +133,12 @@ deploy with the defaults; `vercel.json` pins the framework to Next.js so it isn'
   phone's gallery still shows them; some photo pickers hand over a converted copy.
 - **SDK updates**: `@contentauth/c2pa-web` is pre-1.0 and changes its API between minor versions.
   Update it deliberately and let the end-to-end tests confirm the results still read correctly.
-- **Privacy**: files are processed in the browser and never uploaded. The one exception is the
-  SDK fetching remote manifests an image points to. Keep the on-page "runs locally" claim accurate
-  if you add analytics.
+- **Privacy**: uploaded files are processed in the browser and never uploaded. Exceptions: the
+  SDK fetching remote manifests a file points to, and "Check a link", where the linked file passes
+  through the server (not stored). Keep the on-page claims accurate if you add analytics or logging.
+- **Large downloads on Vercel**: check that a long video link (well over 5 MB) works on a preview
+  deployment; the fetcher streams responses so it isn't bound by a small response-body limit, but
+  confirm on your plan. `maxDuration` is 60 seconds.
 
 ## Known limits
 

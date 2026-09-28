@@ -10,6 +10,7 @@ const contentSecurityPolicy = [
   "worker-src 'self' blob:",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' blob: data:",
+  "media-src 'self' blob:",
   "font-src 'self'",
   `connect-src 'self' https:${isDev ? " ws:" : ""}`,
   "object-src 'none'",
@@ -49,6 +50,12 @@ const nextConfig: NextConfig = {
       {
         source: "/trust/:file*",
         headers: [{ key: "Cache-Control", value: "public, max-age=3600" }],
+      },
+      {
+        // Files fetched for "Check a link" must never run as a page on this site
+        // (e.g. an SVG with scripts). Listed last so it overrides the site-wide CSP.
+        source: "/api/fetch-media",
+        headers: [{ key: "Content-Security-Policy", value: "default-src 'none'; sandbox" }],
       },
     ];
   },

@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "AI Label Check",
     short_name: "AI Label Check",
     description:
-      "Was this image made with AI? Read its Content Credentials to see whether AI use was declared, who signed it, and what edits were made. Works offline; images never leave your device.",
+      "Was this made with AI? Read the Content Credentials in an image, video or audio file to see whether AI use was declared, who signed it, and what edits were made. Works offline; images never leave your device.",
     start_url: "/",
     scope: "/",
     display: "standalone",
@@ -28,7 +28,7 @@ export default function manifest(): MetadataRoute.Manifest {
         files: [
           {
             name: "image",
-            accept: ["image/*", ".jpg", ".jpeg", ".png", ".webp", ".avif", ".heic", ".heif", ".tif", ".tiff", ".dng"],
+            accept: ["image/*", "video/*", "audio/*", ".jpg", ".jpeg", ".png", ".webp", ".avif", ".heic", ".heif", ".tif", ".tiff", ".dng", ".mp4", ".mov", ".m4v", ".mp3", ".wav", ".m4a", ".flac"],
           },
         ],
       },

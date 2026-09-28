@@ -34,8 +34,10 @@ export interface CredentialSummary {
   ai: AiUsage;
   ingredients: { title: string; hasCredentials: boolean }[];
   failures: { code: string; explanation?: string }[];
-  /** The signing certificate isn't on a trust list (normal without trust anchors). */
+  /** The signing certificate doesn't chain to the trust list. */
   untrustedSigner: boolean;
+  /** Whether the C2PA trust list was available when this file was checked. */
+  trustListLoaded: boolean;
   manifestCount: number;
 }
 
@@ -164,16 +166,23 @@ function readFailures(store: ManifestStore): ValidationStatus[] {
 }
 
 const UNTRUSTED = "signingCredential.untrusted";
+// Checks about who is trusted, rather than whether the file was altered. They
+// are reported alongside the result instead of as validation failures.
+const TRUST_CODES = new Set([UNTRUSTED, "timeStamp.untrusted"]);
 
 function readTrust(store: ManifestStore, hardFailures: ValidationStatus[]): TrustLevel {
   if (store.validation_state === "Trusted") return "trusted";
-  if (store.validation_state === "Invalid") return "invalid";
+  // Only integrity failures make a file invalid; trust results are reported separately.
+  if (store.validation_state === "Invalid") return hardFailures.length ? "invalid" : "valid";
   if (store.validation_state === "Valid") return "valid";
   // No explicit state: fall back to whether any check other than trust failed.
   return hardFailures.length ? "invalid" : "valid";
 }
 
-export function summarizeManifestStore(store: ManifestStore): CredentialSummary | null {
+export function summarizeManifestStore(
+  store: ManifestStore,
+  options: { trustListLoaded?: boolean } = {},
+): CredentialSummary | null {
   const label = store.active_manifest;
   const manifests = store.manifests ?? {};
   const manifest = label ? manifests[label] : undefined;
@@ -182,7 +191,7 @@ export function summarizeManifestStore(store: ManifestStore): CredentialSummary 
   const actions = readActions(manifest);
   const failures = readFailures(store);
   // An untrusted certificate isn't tampering, so it is reported separately.
-  const hardFailures = failures.filter((f) => f.code !== UNTRUSTED);
+  const hardFailures = failures.filter((f) => !TRUST_CODES.has(f.code));
   const generator =
     manifest.claim_generator_info?.[0] ?? undefined;
 
@@ -207,7 +216,8 @@ export function summarizeManifestStore(store: ManifestStore): CredentialSummary 
       code: f.code,
       explanation: asString(f.explanation),
     })),
-    untrustedSigner: failures.length !== hardFailures.length,
+    untrustedSigner: failures.some((f) => f.code === UNTRUSTED),
+    trustListLoaded: options.trustListLoaded ?? false,
     manifestCount: Object.keys(manifests).length,
   };
 }

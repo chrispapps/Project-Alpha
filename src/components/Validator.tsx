@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { validateFile } from "@/lib/c2pa-client";
+import { MAX_FILE_BYTES, validateFile } from "@/lib/c2pa-client";
 import type { ValidationOutcome } from "@/lib/credentials";
 import ResultPanel from "./ResultPanel";
 
@@ -94,7 +94,9 @@ export default function Validator() {
           <span className="text-lg font-medium">
             {dragging ? "Release to check this image" : "Drag & drop or upload an image"}
           </span>
-          <span className="text-sm text-muted">JPEG, PNG, WebP, AVIF, HEIC, TIFF, DNG, SVG and more</span>
+          <span className="text-sm text-muted">
+            JPEG, PNG, WebP, AVIF, HEIC, TIFF, DNG, SVG and more · up to {formatBytes(MAX_FILE_BYTES)}
+          </span>
         </span>
         <span className="rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background">
           Choose file

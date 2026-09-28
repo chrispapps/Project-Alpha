@@ -17,7 +17,7 @@ test("shows manifest details for an image with valid credentials", async ({ page
   await expect(result.getByRole("heading", { name: "Content Credentials found" })).toBeVisible();
   await expect(result.getByText("John Doe")).toBeVisible();
   await expect(page.getByTestId("issuer")).toHaveText("C2PA Test Signing Cert");
-  await expect(page.getByTestId("untrusted-signer")).toBeVisible();
+  await expect(page.getByTestId("untrusted-signer")).toContainText("isn't on the official C2PA trust list");
   await expect(page.getByTestId("failures")).toHaveCount(0);
   await expect(page.getByTestId("actions").getByText("Opened", { exact: true })).toBeVisible();
   await expect(page.getByTestId("actions").getByText("Colour adjustments", { exact: true })).toBeVisible();
@@ -59,4 +59,45 @@ test("replaces the result when another file is chosen", async ({ page }) => {
   await expect(page.getByTestId("result-none")).toBeVisible({ timeout: 30_000 });
   await page.getByTestId("file-input").setInputFiles(fixture("C.jpg"));
   await expect(page.getByTestId("result-credentials")).toBeVisible({ timeout: 30_000 });
+});
+
+test.describe("trust list", () => {
+  test("marks credentials as verified when the signer chains to the trust list", async ({ page }) => {
+    await page.route("**/trust/C2PA-TRUST-LIST.pem", (route) =>
+      route.fulfill({ path: fixture("certs/test_cert_root_bundle.pem"), contentType: "application/x-pem-file" }),
+    );
+    await upload(page, "CA.jpg");
+    const result = page.getByTestId("result-credentials");
+    await expect(result).toBeVisible({ timeout: 30_000 });
+    await expect(result).toHaveAttribute("data-trust", "trusted");
+    await expect(result.getByRole("heading", { name: "Content Credentials verified" })).toBeVisible();
+    await expect(page.getByTestId("untrusted-signer")).toHaveCount(0);
+  });
+
+  test("still validates when the trust list can't be loaded", async ({ page }) => {
+    await page.route("**/trust/C2PA-TRUST-LIST.pem", (route) => route.fulfill({ status: 404, body: "" }));
+    await upload(page, "CA.jpg");
+    const result = page.getByTestId("result-credentials");
+    await expect(result).toBeVisible({ timeout: 30_000 });
+    await expect(result).toHaveAttribute("data-trust", "valid");
+    await expect(page.getByTestId("untrusted-signer")).toContainText("couldn't be loaded");
+  });
+
+  test("a tampered file stays invalid even when the signer is trusted", async ({ page }) => {
+    await page.route("**/trust/C2PA-TRUST-LIST.pem", (route) =>
+      route.fulfill({ path: fixture("certs/test_cert_root_bundle.pem"), contentType: "application/x-pem-file" }),
+    );
+    await upload(page, "XCA.jpg");
+    const result = page.getByTestId("result-credentials");
+    await expect(result).toBeVisible({ timeout: 30_000 });
+    await expect(result).toHaveAttribute("data-trust", "invalid");
+  });
+});
+
+test("sends security headers", async ({ request }) => {
+  const res = await request.get("/");
+  const csp = res.headers()["content-security-policy"];
+  expect(csp).toContain("'wasm-unsafe-eval'");
+  expect(csp).toContain("worker-src 'self' blob:");
+  expect(res.headers()["x-content-type-options"]).toBe("nosniff");
 });

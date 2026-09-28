@@ -5,7 +5,7 @@ import { sourceTypeName } from "@/lib/credentials";
 const TRUST_COPY: Record<TrustLevel, { title: string; body: string; tone: string; dot: string }> = {
   trusted: {
     title: "Content Credentials verified",
-    body: "The signature is intact and was issued by a certificate on the trust list.",
+    body: "The signature is intact, and the signing certificate chains to a certificate authority on the official C2PA trust list.",
     tone: "border-valid/40 bg-valid/[0.07]",
     dot: "bg-valid",
   },
@@ -90,9 +90,11 @@ function Credentials({ summary, onReset }: { summary: CredentialSummary; onReset
           <h2 className="text-lg font-semibold">{trust.title}</h2>
         </div>
         <p className="mt-2 text-sm leading-relaxed text-foreground/80">{trust.body}</p>
-        {summary.untrustedSigner && summary.trust !== "trusted" && (
+        {summary.trust !== "trusted" && (summary.untrustedSigner || !summary.trustListLoaded) && (
           <p className="mt-3 text-sm text-warn" data-testid="untrusted-signer">
-            The signing certificate isn&apos;t on a known trust list, so treat the issuer name as unconfirmed.
+            {summary.trustListLoaded
+              ? "The signing certificate isn't on the official C2PA trust list, so treat the issuer name as unconfirmed."
+              : "The C2PA trust list couldn't be loaded, so the issuer wasn't checked. Treat the issuer name as unconfirmed."}
           </p>
         )}
         {summary.failures.length > 0 && (

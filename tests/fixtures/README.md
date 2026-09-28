@@ -11,3 +11,6 @@ MIT / Apache-2.0). They are signed with the C2PA test certificate, which is not 
 | `E-sig-CA.jpg` | Corrupted claim signature (`claimSignature.mismatch`) |
 | `XCA.jpg` | Image data changed after signing (`assertion.dataHash.mismatch`) |
 | `no_manifest.jpg` | No Content Credentials at all |
+
+`certs/test_cert_root_bundle.pem` is the root bundle for the C2PA test certificates (same source).
+The trust tests serve it in place of the real trust list so the "verified" state can be exercised.

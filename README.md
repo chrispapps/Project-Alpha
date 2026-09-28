@@ -23,6 +23,7 @@ npm run dev        # http://localhost:3000
 | `npm run lint` | ESLint |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run test:e2e` | Builds the app and runs the Playwright tests in `tests/` against real C2PA sample images |
+| `npm run trust:update` | Re-downloads the official C2PA trust list into `public/trust/` |
 
 ## How it works
 
@@ -38,17 +39,53 @@ npm run dev        # http://localhost:3000
   - **AI usage**: a `digitalSourceType` of `trainedAlgorithmicMedia`, `algorithmicMedia`,
     `compositeSynthetic` and the like, on an action or ingredient. This is what the signer
     *declared*, not an AI detector.
-  - **Validation**: `validation_state` plus the active manifest's failure codes. An untrusted
-    signing certificate is reported separately from tampering.
+  - **Validation**: `validation_state` plus the active manifest's failure codes. Integrity
+    failures (tampering, broken signatures) make a result invalid; trust results (signer or
+    timestamp authority not on the trust list) are shown as a separate note.
 - `src/components/` holds the drop zone (`Validator.tsx`) and the results (`ResultPanel.tsx`), with
   states for valid, invalid/tampered, no credentials, and unreadable files.
 
+## Trust list
+
+"Content Credentials verified" means the signing certificate chains to a certificate authority
+on the [official C2PA trust list](https://github.com/c2pa-org/conformance-public/tree/main/trust-list)
+(Adobe, Google, DigiCert, SSL.com and other conformance-program members). The list is vendored in
+`public/trust/C2PA-TRUST-LIST.pem`, so a deploy never depends on a third-party host at runtime.
+
+- A GitHub Action (`.github/workflows/trust-list.yml`) checks weekly and opens a pull request when
+  the list changes. Review which authorities were added or removed before merging.
+- If the file can't be loaded, the validator still checks integrity and says the issuer wasn't
+  checked, rather than failing.
+- The legacy Content Authenticity Initiative "interim" trust list isn't included. Credentials
+  signed only under it show as "issuer unconfirmed".
+
+## Deploying
+
+The app is fully static and needs no server-side secrets. On Vercel, import the repository and
+deploy with the defaults. On any other host, run `npm ci && npm run build && npm start` (Node 20.9+).
+
+- `npm ci` / `npm run build` copy the Wasm binary into `public/c2pa/`, so no extra build step is
+  needed.
+- `next.config.ts` sets a Content Security Policy that allows what the SDK needs
+  (`'wasm-unsafe-eval'`, `blob:` workers, `https:` fetches for remote manifests) and nothing more,
+  plus HSTS, `nosniff` and a strict referrer policy. If you add analytics or error reporting, add
+  their origins to `connect-src` / `script-src`.
+
+## Operations checklist
+
+- **CI**: `.github/workflows/ci.yml` runs lint, typecheck and the browser tests on every pull
+  request and on `main`. Protect `main` so it requires this check.
+- **Trust list PRs**: the refresh workflow needs *Settings → Actions → General → Allow GitHub
+  Actions to create and approve pull requests* enabled.
+- **SDK updates**: `@contentauth/c2pa-web` is pre-1.0 and changes its API between minor versions.
+  Update it deliberately and let the end-to-end tests confirm the results still read correctly.
+- **Privacy**: files are processed in the browser and never uploaded. The one exception is the
+  SDK fetching remote manifests an image points to. Keep the on-page "runs locally" claim accurate
+  if you add analytics.
+
 ## Known limits
 
-- **Trust list**: the validator doesn't load a trust list yet, so a real signature from Adobe,
-  a camera maker, etc. shows as "Content Credentials found" with an "issuer unconfirmed" note rather
-  than "verified". Passing the C2PA trust anchors in a `Context` (`verify.verifyTrust`) enables the
-  "trusted" state.
 - Images whose credentials are stored remotely (a URL in XMP) need network access to that URL.
 - Many platforms strip C2PA data on upload, so "No digital signature found" is common and doesn't
   mean an image is fake.
+- Uploads are capped at 200 MB to keep the browser tab responsive.

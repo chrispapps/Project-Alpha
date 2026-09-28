@@ -1,0 +1,33 @@
+name: Refresh C2PA trust list
+
+# The C2PA conformance program adds and removes certificate authorities over
+# time. This checks weekly and opens a pull request when the list changes, so
+# every change is reviewed and goes through CI before it ships.
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/update-trust-list.mjs
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/refresh-c2pa-trust-list
+          commit-message: Refresh C2PA trust list
+          title: Refresh C2PA trust list
+          body: |
+            Automated update of `public/trust/C2PA-TRUST-LIST.pem` from
+            [c2pa-org/conformance-public](https://github.com/c2pa-org/conformance-public/tree/main/trust-list).
+            Review the added or removed certificate authorities before merging.
+          delete-branch: true

@@ -1,0 +1,62 @@
+import { expect, test, type Page } from "@playwright/test";
+import path from "node:path";
+
+const fixture = (name: string) => path.join(__dirname, "fixtures", name);
+
+async function upload(page: Page, name: string) {
+  await page.goto("/");
+  await expect(page.getByText("Drag & drop or upload an image")).toBeVisible();
+  await page.getByTestId("file-input").setInputFiles(fixture(name));
+}
+
+test("shows manifest details for an image with valid credentials", async ({ page }) => {
+  await upload(page, "CA.jpg");
+  const result = page.getByTestId("result-credentials");
+  await expect(result).toBeVisible({ timeout: 30_000 });
+  await expect(result).toHaveAttribute("data-trust", "valid");
+  await expect(result.getByRole("heading", { name: "Content Credentials found" })).toBeVisible();
+  await expect(result.getByText("John Doe")).toBeVisible();
+  await expect(page.getByTestId("issuer")).toHaveText("C2PA Test Signing Cert");
+  await expect(page.getByTestId("untrusted-signer")).toBeVisible();
+  await expect(page.getByTestId("failures")).toHaveCount(0);
+  await expect(page.getByTestId("actions").getByText("Opened", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("actions").getByText("Colour adjustments", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("ai-usage")).toContainText("NONE DECLARED");
+});
+
+test("flags declared generative-AI use", async ({ page }) => {
+  await upload(page, "C.jpg");
+  await expect(page.getByTestId("result-credentials")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId("ai-usage")).toContainText("AI GENERATED");
+  await expect(page.getByTestId("ai-usage")).toContainText("algorithmicMedia");
+});
+
+for (const [name, code] of [
+  ["E-sig-CA.jpg", "claimSignature.mismatch"],
+  ["XCA.jpg", "assertion.dataHash.mismatch"],
+] as const) {
+  test(`reports failed validation for ${name}`, async ({ page }) => {
+    await upload(page, name);
+    const result = page.getByTestId("result-credentials");
+    await expect(result).toBeVisible({ timeout: 30_000 });
+    await expect(result).toHaveAttribute("data-trust", "invalid");
+    await expect(result.getByRole("heading", { name: "Credentials failed validation" })).toBeVisible();
+    await expect(page.getByTestId("failures")).toContainText(code);
+  });
+}
+
+test("shows the empty state for an image without credentials", async ({ page }) => {
+  await upload(page, "no_manifest.jpg");
+  await expect(page.getByTestId("result-none")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "No digital signature found" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Check another image" }).click();
+  await expect(page.getByText("Drag & drop or upload an image")).toBeVisible();
+});
+
+test("replaces the result when another file is chosen", async ({ page }) => {
+  await upload(page, "no_manifest.jpg");
+  await expect(page.getByTestId("result-none")).toBeVisible({ timeout: 30_000 });
+  await page.getByTestId("file-input").setInputFiles(fixture("C.jpg"));
+  await expect(page.getByTestId("result-credentials")).toBeVisible({ timeout: 30_000 });
+});

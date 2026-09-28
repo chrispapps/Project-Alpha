@@ -31,7 +31,7 @@ test("says when a video has no credentials", async ({ page }) => {
   await upload(page, fixture("media/video1_no_manifest.mp4"));
   const result = page.getByTestId("result-none");
   await expect(result).toBeVisible({ timeout: 30_000 });
-  await expect(result).toContainText("This video has no Content Credentials");
+  await expect(result).toContainText("This video doesn't carry a verified label");
   // Screenshot clues are for still images only.
   await expect(page.getByTestId("origin-note")).toHaveCount(0);
 });
@@ -40,6 +40,6 @@ test("checks audio files", async ({ page }) => {
   await upload(page, fixture("media/sample1.wav"));
   const result = page.getByTestId("result-none");
   await expect(result).toBeVisible({ timeout: 30_000 });
-  await expect(result).toContainText("This audio file has no Content Credentials");
+  await expect(result).toContainText("This audio file doesn't carry a verified label");
   await expect(page.getByTestId("preview-audio")).toBeVisible();
 });

@@ -33,6 +33,17 @@ const RED_TONE = RED_TONE_INVALID;
 function statusCopy(summary: CredentialSummary, kind: MediaKind): { title: string; body: string; tone: string; dot: string; flagged: boolean } {
   const trust = TRUST_COPY[summary.trust];
   if (summary.trust === "invalid" || summary.ai.kind === "none-declared") return { ...trust, flagged: false };
+  if (summary.ai.kind === "capture") {
+    const noun = NOUN[kind];
+    return summary.trust === "trusted"
+      ? {
+          ...trust,
+          title: "Verified: captured with a camera",
+          body: `The signature is intact, the signer is on the official C2PA trust list, and the credentials declare this ${noun} was captured with a camera, not generated.`,
+          flagged: false,
+        }
+      : { ...trust, body: `${trust.body} The credentials declare it was captured with a camera.`, flagged: false };
+  }
   const signature =
     summary.trust === "trusted"
       ? "The signature is intact and the signer is on the official C2PA trust list, so this label is authentic."
@@ -91,7 +102,21 @@ function AiBadge({ summary }: { summary: CredentialSummary }) {
       <div className="flex items-start gap-3" data-testid="ai-usage">
         <span className="mt-0.5 shrink-0 whitespace-nowrap rounded-md border border-border px-2 py-0.5 font-mono text-xs text-muted">NONE DECLARED</span>
         <p className="text-sm text-muted">
-          The credentials don&apos;t declare any generative-AI use. That&apos;s what the signer stated, not a detection result.
+          The credentials don&apos;t say whether this was captured with a camera or made with AI. We only report what the label declares; we don&apos;t guess.
+        </p>
+      </div>
+    );
+  }
+  if (ai.kind === "capture") {
+    return (
+      <div className="flex items-start gap-3" data-testid="ai-usage">
+        <span className="mt-0.5 shrink-0 whitespace-nowrap rounded-md border border-valid/50 bg-valid/10 px-2 py-0.5 font-mono text-xs font-semibold text-valid">
+          CAMERA CAPTURE
+        </span>
+        <p className="text-sm">
+          Declared as captured with a camera, not generated. It&apos;s strongest when the signature is verified, since
+          that confirms who made the claim.
+          <span className="mt-1 block font-mono text-xs text-muted">digitalSourceType: {ai.sourceType}</span>
         </p>
       </div>
     );
@@ -173,7 +198,7 @@ function Credentials({ summary, kind, onReset }: { summary: CredentialSummary; k
         </dl>
       </Card>
 
-      <Card title="AI usage">
+      <Card title="How it was made">
         <AiBadge summary={summary} />
       </Card>
 
@@ -299,11 +324,11 @@ export default function ResultPanel({
             </svg>
           </span>
           <div className="flex max-w-sm flex-col gap-2">
-            <h2 className="text-lg font-semibold">No digital signature found</h2>
+            <h2 className="text-lg font-semibold">No Content Credentials found</h2>
             <p className="text-sm leading-relaxed text-muted">
               {screenshot
-                ? `This ${noun} has no Content Credentials, so there's no AI label to read.`
-                : `This ${noun} has no Content Credentials. That doesn't mean it's fake — most files don't carry them yet, and many sites strip them on upload.`}
+                ? `This ${noun} has no Content Credentials, so there's no label to read.`
+                : `This ${noun} doesn't carry a verified label, so there's no record of who made it or whether AI was used. That isn't a sign it's fake: most files don't have labels yet, and many sites remove them.`}
             </p>
           </div>
           <button type="button" onClick={onReset} className="rounded-full border border-border px-4 py-2 text-sm hover:bg-surface-2">

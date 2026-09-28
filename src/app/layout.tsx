@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Label Check: was this made with AI?",
+  title: "AI Label Check: verify the label on images, video and audio",
   description:
-    "Check the Content Credentials in an image, video or audio file to see whether AI use was declared, who signed it, and what edits were made. Runs entirely in your browser.",
+    "Shows you the verified label when an image, video or audio file has one, and tells you honestly when it doesn't: who signed it, whether it was captured with a camera or made with AI, and whether it was altered.",
   applicationName: "AI Label Check",
   appleWebApp: {
     capable: true,

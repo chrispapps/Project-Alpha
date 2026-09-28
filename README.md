@@ -1,8 +1,19 @@
 # AI Label Check
 
-Was this made with AI? Drop in an image, video (MP4, MOV) or audio file (MP3, WAV, M4A, FLAC), or
-paste a link to one, and see its [C2PA](https://c2pa.org/) Content Credentials: who signed it,
-which app or device produced it, what edits were recorded, and whether generative AI was declared.
+Shows you the verified label when an image, video or audio file has one, and tells you honestly
+when it doesn't.
+
+Drop in an image, video (MP4, MOV) or audio file (MP3, WAV, M4A, FLAC), or paste a link to one. If
+it carries [C2PA](https://c2pa.org/) Content Credentials, the app shows who signed it, whether it was
+captured with a camera or made with AI, and what was edited, and checks the signature for
+tampering against the official C2PA trust list. If it has no credentials, it says so plainly, and
+explains when a missing label can't be read as "real" (for example, screenshots strip labels).
+
+**Positioning:** this proves provenance; it doesn't detect AI. Many AI tools never add labels and
+most platforms strip them, so no label-based tool can catch most AI content. The durable value is
+the other direction: cameras, newsrooms and creators increasingly sign authentic work, and anyone
+can verify it here.
+
 Checking runs in the browser via WebAssembly, so uploaded files never leave the device. Links are
 downloaded through the app's server (see [Checking links](#checking-links)).
 
@@ -38,9 +49,11 @@ npm run dev        # http://localhost:3000
   - **Author**: `stds.schema-org.CreativeWork` assertion (`author[].name`).
   - **Issuer / signed on / algorithm**: the active manifest's `signature_info`.
   - **Actions**: `c2pa.actions` / `c2pa.actions.v2` assertions.
-  - **AI usage**: a `digitalSourceType` of `trainedAlgorithmicMedia`, `algorithmicMedia`,
-    `compositeSynthetic` and the like, on an action or ingredient. This is what the signer
-    *declared*, not an AI detector.
+  - **How it was made**: the `digitalSourceType` on an action or ingredient. AI types
+    (`trainedAlgorithmicMedia`, `algorithmicMedia`, `compositeSynthetic`…) are flagged red; camera
+    types (`digitalCapture`, `computationalCapture`, `compositeCapture`, film scans) show a green
+    "camera capture" badge, but only when nothing in the history declares AI. This is what the
+    signer *declared*, not a detector; a trusted signature is what makes it strong evidence.
   - **Validation**: `validation_state` plus the active manifest's failure codes. Integrity
     failures (tampering, broken signatures) make a result invalid; trust results (signer or
     timestamp authority not on the trust list) are shown as a separate note.

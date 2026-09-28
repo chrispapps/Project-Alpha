@@ -4,6 +4,7 @@ import type { C2pa, Context, Reader } from "@contentauth/c2pa-web";
 import sdkPackage from "@contentauth/c2pa-web/package.json";
 import { summarizeManifestStore, type ValidationOutcome } from "./credentials";
 import { analyzeOrigin } from "./image-origin";
+import { extensionType, mediaKind } from "./media";
 
 // Copied from the installed @contentauth/c2pa-web by scripts/copy-c2pa-wasm.mjs.
 // The version stamp keeps browser and service-worker caches from pairing a new
@@ -74,25 +75,8 @@ export async function takeSharedFile(): Promise<File | null> {
   return new File([blob], name, { type: blob.type });
 }
 
-const EXTENSION_TYPES: Record<string, string> = {
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  png: "image/png",
-  webp: "image/webp",
-  avif: "image/avif",
-  heic: "image/heic",
-  heif: "image/heif",
-  gif: "image/gif",
-  tif: "image/tiff",
-  tiff: "image/tiff",
-  svg: "image/svg+xml",
-  dng: "image/x-adobe-dng",
-};
-
 export function mimeTypeFor(file: File): string | undefined {
-  if (file.type) return file.type;
-  const ext = file.name.split(".").pop()?.toLowerCase();
-  return ext ? EXTENSION_TYPES[ext] : undefined;
+  return file.type || extensionType(file.name);
 }
 
 function errorMessage(err: unknown): string {
@@ -111,6 +95,8 @@ function formatMb(bytes: number): string {
 export async function validateFile(file: File): Promise<ValidationOutcome> {
   const outcome = await readCredentials(file);
   if (outcome.status !== "none") return outcome;
+  // Screenshot and camera clues only apply to still images.
+  if (mediaKind(mimeTypeFor(file)) !== "image") return outcome;
   // No label: look for clues (screenshot, no camera data) that explain why.
   const origin = await analyzeOrigin(file).catch(() => ({ kind: "unknown" as const }));
   return { status: "none", origin };
@@ -145,7 +131,10 @@ async function readCredentials(file: File): Promise<ValidationOutcome> {
       };
     }
     if (/unsupported|format/i.test(message)) {
-      return { status: "error", message: "This file format isn't supported for Content Credentials." };
+      return {
+        status: "error",
+        message: "This file format isn't supported for Content Credentials. Try JPEG, PNG, HEIC, MP4, MOV, MP3 or WAV.",
+      };
     }
     return { status: "error", message };
   }

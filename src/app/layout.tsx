@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Label Check: was this image made with AI?",
+  title: "AI Label Check: was this made with AI?",
   description:
-    "Check an image's Content Credentials to see whether AI use was declared, who signed it, and what edits were made. Runs entirely in your browser.",
+    "Check the Content Credentials in an image, video or audio file to see whether AI use was declared, who signed it, and what edits were made. Runs entirely in your browser.",
   applicationName: "AI Label Check",
   appleWebApp: {
     capable: true,
@@ -51,7 +51,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <div className="flex items-center gap-3">
               <span className="hidden items-center gap-2 rounded-full border border-border px-3 py-1 font-mono text-xs text-muted sm:flex">
                 <span className="h-1.5 w-1.5 rounded-full bg-valid" aria-hidden />
-                Runs locally · files never leave your device
+                Runs locally · uploads never leave your device
               </span>
               <AppShell />
             </div>

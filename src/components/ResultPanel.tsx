@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { CredentialSummary, TrustLevel, ValidationOutcome } from "@/lib/credentials";
 import { sourceTypeName } from "@/lib/credentials";
 import type { OriginSignal } from "@/lib/image-origin";
+import { NOUN, type MediaKind } from "@/lib/media";
 
 const RED_TONE_INVALID = "border-danger/50 bg-danger/[0.08]";
 
@@ -14,13 +15,13 @@ const TRUST_COPY: Record<TrustLevel, { title: string; body: string; tone: string
   },
   valid: {
     title: "Content Credentials found",
-    body: "The signature is intact and the image matches what was signed.",
+    body: "The signature is intact and the file matches what was signed.",
     tone: "border-valid/40 bg-valid/[0.07]",
     dot: "bg-valid",
   },
   invalid: {
     title: "Credentials failed validation",
-    body: "This file carries Content Credentials, but they don't check out — the image may have been altered after signing, or the signature is broken.",
+    body: "This file carries Content Credentials, but they don't check out — the file may have been altered after signing, or the signature is broken.",
     tone: RED_TONE_INVALID,
     dot: "bg-danger",
   },
@@ -28,25 +29,26 @@ const TRUST_COPY: Record<TrustLevel, { title: string; body: string; tone: string
 
 const RED_TONE = RED_TONE_INVALID;
 
-/** A declared-AI image is flagged red even when its signature checks out. */
-function statusCopy(summary: CredentialSummary): { title: string; body: string; tone: string; dot: string; flagged: boolean } {
+/** Declared AI use is flagged red even when the signature checks out. */
+function statusCopy(summary: CredentialSummary, kind: MediaKind): { title: string; body: string; tone: string; dot: string; flagged: boolean } {
   const trust = TRUST_COPY[summary.trust];
   if (summary.trust === "invalid" || summary.ai.kind === "none-declared") return { ...trust, flagged: false };
   const signature =
     summary.trust === "trusted"
       ? "The signature is intact and the signer is on the official C2PA trust list, so this label is authentic."
-      : "The signature is intact and the image matches what was signed.";
+      : "The signature is intact and the file matches what was signed.";
+  const noun = NOUN[kind];
   return summary.ai.kind === "generated"
     ? {
-        title: "Flagged: AI-generated image",
-        body: `This image's Content Credentials declare that it was created with generative AI. ${signature}`,
+        title: `Flagged: AI-generated ${kind === "audio" ? "audio" : noun}`,
+        body: `This ${noun}'s Content Credentials declare that it was created with generative AI. ${signature}`,
         tone: RED_TONE,
         dot: "bg-danger",
         flagged: true,
       }
     : {
         title: "Flagged: contains AI-generated content",
-        body: `This image's Content Credentials declare that it combines real or edited content with AI-generated elements. ${signature}`,
+        body: `This ${noun}'s Content Credentials declare that it combines real or edited content with AI-generated elements. ${signature}`,
         tone: RED_TONE,
         dot: "bg-danger",
         flagged: true,
@@ -110,8 +112,8 @@ function AiBadge({ summary }: { summary: CredentialSummary }) {
   );
 }
 
-function Credentials({ summary, onReset }: { summary: CredentialSummary; onReset: () => void }) {
-  const status = statusCopy(summary);
+function Credentials({ summary, kind, onReset }: { summary: CredentialSummary; kind: MediaKind; onReset: () => void }) {
+  const status = statusCopy(summary, kind);
   return (
     <div
       className="flex flex-col gap-4"
@@ -270,9 +272,18 @@ function OriginNote({ origin }: { origin: OriginSignal }) {
   return null;
 }
 
-export default function ResultPanel({ outcome, onReset }: { outcome: ValidationOutcome; onReset: () => void }) {
+export default function ResultPanel({
+  outcome,
+  kind = "image",
+  onReset,
+}: {
+  outcome: ValidationOutcome;
+  kind?: MediaKind;
+  onReset: () => void;
+}) {
+  const noun = NOUN[kind];
   if (outcome.status === "credentials") {
-    return <Credentials summary={outcome.summary} onReset={onReset} />;
+    return <Credentials summary={outcome.summary} kind={kind} onReset={onReset} />;
   }
 
   if (outcome.status === "none") {
@@ -291,12 +302,12 @@ export default function ResultPanel({ outcome, onReset }: { outcome: ValidationO
             <h2 className="text-lg font-semibold">No digital signature found</h2>
             <p className="text-sm leading-relaxed text-muted">
               {screenshot
-                ? "This image has no Content Credentials, so there's no AI label to read."
-                : "This image has no Content Credentials. That doesn't mean it's fake — most images don't carry them yet, and many sites strip them on upload."}
+                ? `This ${noun} has no Content Credentials, so there's no AI label to read.`
+                : `This ${noun} has no Content Credentials. That doesn't mean it's fake — most files don't carry them yet, and many sites strip them on upload.`}
             </p>
           </div>
           <button type="button" onClick={onReset} className="rounded-full border border-border px-4 py-2 text-sm hover:bg-surface-2">
-            Check another image
+            Check another {noun}
           </button>
         </div>
         {origin && <OriginNote origin={origin} />}
@@ -309,7 +320,7 @@ export default function ResultPanel({ outcome, onReset }: { outcome: ValidationO
       <h2 className="text-lg font-semibold">Couldn&apos;t read this file</h2>
       <p className="break-words font-mono text-xs text-foreground/80">{outcome.message}</p>
       <button type="button" onClick={onReset} className="self-start rounded-full border border-border px-4 py-2 text-sm hover:bg-surface-2">
-        Try another image
+        Try another file
       </button>
     </div>
   );

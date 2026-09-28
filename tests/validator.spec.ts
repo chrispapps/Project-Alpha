@@ -22,11 +22,17 @@ test("shows manifest details for an image with valid credentials", async ({ page
   await expect(page.getByTestId("actions").getByText("Opened", { exact: true })).toBeVisible();
   await expect(page.getByTestId("actions").getByText("Colour adjustments", { exact: true })).toBeVisible();
   await expect(page.getByTestId("ai-usage")).toContainText("NONE DECLARED");
+  // No AI declared: stays green, not flagged.
+  await expect(result).not.toHaveAttribute("data-flag", "ai");
 });
 
-test("flags declared generative-AI use", async ({ page }) => {
+test("flags declared generative-AI use in red", async ({ page }) => {
   await upload(page, "C.jpg");
-  await expect(page.getByTestId("result-credentials")).toBeVisible({ timeout: 30_000 });
+  const result = page.getByTestId("result-credentials");
+  await expect(result).toBeVisible({ timeout: 30_000 });
+  await expect(result).toHaveAttribute("data-flag", "ai");
+  await expect(result.getByRole("heading", { name: "Flagged: AI-generated image" })).toBeVisible();
+  await expect(page.getByTestId("status")).toHaveClass(/border-danger/);
   await expect(page.getByTestId("ai-usage")).toContainText("AI GENERATED");
   await expect(page.getByTestId("ai-usage")).toContainText("algorithmicMedia");
 });
@@ -85,6 +91,18 @@ test.describe("trust list", () => {
     await expect(result).toBeVisible({ timeout: 30_000 });
     await expect(result).toHaveAttribute("data-trust", "valid");
     await expect(page.getByTestId("untrusted-signer")).toContainText("couldn't be loaded");
+  });
+
+  test("a trusted AI-generated image is still flagged", async ({ page }) => {
+    await page.route("**/trust/C2PA-TRUST-LIST.pem", (route) =>
+      route.fulfill({ path: fixture("certs/test_cert_root_bundle.pem"), contentType: "application/x-pem-file" }),
+    );
+    await upload(page, "C.jpg");
+    const result = page.getByTestId("result-credentials");
+    await expect(result).toBeVisible({ timeout: 30_000 });
+    await expect(result).toHaveAttribute("data-trust", "trusted");
+    await expect(result).toHaveAttribute("data-flag", "ai");
+    await expect(page.getByTestId("status")).toContainText("this label is authentic");
   });
 
   test("a tampered file stays invalid even when the signer is trusted", async ({ page }) => {

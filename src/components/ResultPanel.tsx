@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import type { CredentialSummary, TrustLevel, ValidationOutcome } from "@/lib/credentials";
 import { sourceTypeName } from "@/lib/credentials";
 
+const RED_TONE_INVALID = "border-danger/50 bg-danger/[0.08]";
+
 const TRUST_COPY: Record<TrustLevel, { title: string; body: string; tone: string; dot: string }> = {
   trusted: {
     title: "Content Credentials verified",
@@ -18,10 +20,37 @@ const TRUST_COPY: Record<TrustLevel, { title: string; body: string; tone: string
   invalid: {
     title: "Credentials failed validation",
     body: "This file carries Content Credentials, but they don't check out — the image may have been altered after signing, or the signature is broken.",
-    tone: "border-danger/50 bg-danger/[0.08]",
+    tone: RED_TONE_INVALID,
     dot: "bg-danger",
   },
 };
+
+const RED_TONE = RED_TONE_INVALID;
+
+/** A declared-AI image is flagged red even when its signature checks out. */
+function statusCopy(summary: CredentialSummary): { title: string; body: string; tone: string; dot: string; flagged: boolean } {
+  const trust = TRUST_COPY[summary.trust];
+  if (summary.trust === "invalid" || summary.ai.kind === "none-declared") return { ...trust, flagged: false };
+  const signature =
+    summary.trust === "trusted"
+      ? "The signature is intact and the signer is on the official C2PA trust list, so this label is authentic."
+      : "The signature is intact and the image matches what was signed.";
+  return summary.ai.kind === "generated"
+    ? {
+        title: "Flagged: AI-generated image",
+        body: `This image's Content Credentials declare that it was created with generative AI. ${signature}`,
+        tone: RED_TONE,
+        dot: "bg-danger",
+        flagged: true,
+      }
+    : {
+        title: "Flagged: contains AI-generated content",
+        body: `This image's Content Credentials declare that it combines real or edited content with AI-generated elements. ${signature}`,
+        tone: RED_TONE,
+        dot: "bg-danger",
+        flagged: true,
+      };
+}
 
 function formatDate(iso?: string): string | undefined {
   if (!iso) return undefined;
@@ -67,7 +96,7 @@ function AiBadge({ summary }: { summary: CredentialSummary }) {
   const generated = ai.kind === "generated";
   return (
     <div className="flex items-start gap-3" data-testid="ai-usage">
-      <span className="mt-0.5 shrink-0 whitespace-nowrap rounded-md border border-ai/40 bg-ai/10 px-2 py-0.5 font-mono text-xs text-ai">
+      <span className="mt-0.5 shrink-0 whitespace-nowrap rounded-md border border-danger/50 bg-danger/10 px-2 py-0.5 font-mono text-xs font-semibold text-danger">
         {generated ? "AI GENERATED" : "AI ASSISTED"}
       </span>
       <p className="text-sm">
@@ -81,15 +110,27 @@ function AiBadge({ summary }: { summary: CredentialSummary }) {
 }
 
 function Credentials({ summary, onReset }: { summary: CredentialSummary; onReset: () => void }) {
-  const trust = TRUST_COPY[summary.trust];
+  const status = statusCopy(summary);
   return (
-    <div className="flex flex-col gap-4" data-testid="result-credentials" data-trust={summary.trust}>
-      <div className={`rounded-2xl border p-5 ${trust.tone}`}>
+    <div
+      className="flex flex-col gap-4"
+      data-testid="result-credentials"
+      data-trust={summary.trust}
+      data-flag={status.flagged ? "ai" : undefined}
+    >
+      <div className={`rounded-2xl border p-5 ${status.tone}`} data-testid="status">
         <div className="flex items-center gap-2.5">
-          <span className={`h-2.5 w-2.5 rounded-full ${trust.dot}`} aria-hidden />
-          <h2 className="text-lg font-semibold">{trust.title}</h2>
+          {status.flagged ? (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-danger" aria-hidden>
+              <path d="M5 21V4" />
+              <path d="M5 4h11l-1.5 4L16 12H5" />
+            </svg>
+          ) : (
+            <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${status.dot}`} aria-hidden />
+          )}
+          <h2 className="text-lg font-semibold">{status.title}</h2>
         </div>
-        <p className="mt-2 text-sm leading-relaxed text-foreground/80">{trust.body}</p>
+        <p className="mt-2 text-sm leading-relaxed text-foreground/80">{status.body}</p>
         {summary.trust !== "trusted" && (summary.untrustedSigner || !summary.trustListLoaded) && (
           <p className="mt-3 text-sm text-warn" data-testid="untrusted-signer">
             {summary.trustListLoaded

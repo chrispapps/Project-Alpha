@@ -1,10 +1,13 @@
 "use client";
 
 import type { C2pa, Context, Reader } from "@contentauth/c2pa-web";
+import sdkPackage from "@contentauth/c2pa-web/package.json";
 import { summarizeManifestStore, type ValidationOutcome } from "./credentials";
 
 // Copied from the installed @contentauth/c2pa-web by scripts/copy-c2pa-wasm.mjs.
-const WASM_SRC = "/c2pa/c2pa_bg.wasm";
+// The version stamp keeps browser and service-worker caches from pairing a new
+// SDK with an old binary after an upgrade.
+const WASM_SRC = `/c2pa/c2pa_bg.wasm?v=${sdkPackage.version}`;
 // Official C2PA trust list, vendored by scripts/update-trust-list.mjs.
 const TRUST_LIST_SRC = "/trust/C2PA-TRUST-LIST.pem";
 
@@ -44,6 +47,30 @@ function getSdk(): Promise<Sdk> {
       throw err;
     });
   return instance;
+}
+
+/**
+ * Loads the SDK, Wasm binary and trust list ahead of time so the service
+ * worker caches them and the app can check images offline.
+ */
+export function preloadValidator(): void {
+  getSdk().catch(() => {});
+}
+
+// Must match SHARE_CACHE / SHARED_FILE_KEY in public/sw.js.
+const SHARE_CACHE = "cc-share";
+const SHARED_FILE_KEY = "/__shared-file";
+
+/** Takes the image another app shared to this one, if any (one-shot). */
+export async function takeSharedFile(): Promise<File | null> {
+  if (!("caches" in window)) return null;
+  const cache = await caches.open(SHARE_CACHE);
+  const response = await cache.match(SHARED_FILE_KEY);
+  if (!response) return null;
+  await cache.delete(SHARED_FILE_KEY);
+  const blob = await response.blob();
+  const name = decodeURIComponent(response.headers.get("x-file-name") ?? "shared-image");
+  return new File([blob], name, { type: blob.type });
 }
 
 const EXTENSION_TYPES: Record<string, string> = {

@@ -62,6 +62,10 @@ test("replaces the result when another file is chosen", async ({ page }) => {
 });
 
 test.describe("trust list", () => {
+  // These tests swap the trust list via request interception, which can't see
+  // requests the service worker answers from its cache.
+  test.use({ serviceWorkers: "block" });
+
   test("marks credentials as verified when the signer chains to the trust list", async ({ page }) => {
     await page.route("**/trust/C2PA-TRUST-LIST.pem", (route) =>
       route.fulfill({ path: fixture("certs/test_cert_root_bundle.pem"), contentType: "application/x-pem-file" }),

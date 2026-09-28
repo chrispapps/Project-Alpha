@@ -3,10 +3,10 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "Content Credentials Validator",
-    short_name: "Credentials",
+    name: "AI Label Check",
+    short_name: "AI Label Check",
     description:
-      "Check an image for C2PA Content Credentials: who signed it, what was done to it, and whether AI was declared. Works offline; images never leave your device.",
+      "Was this image made with AI? Read its Content Credentials to see whether AI use was declared, who signed it, and what edits were made. Works offline; images never leave your device.",
     start_url: "/",
     scope: "/",
     display: "standalone",

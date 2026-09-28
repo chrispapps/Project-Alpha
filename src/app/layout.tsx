@@ -15,13 +15,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Content Credentials Validator",
+  title: "AI Label Check: was this image made with AI?",
   description:
-    "Check an image for C2PA Content Credentials — who signed it, what was done to it, and whether AI was involved. Runs entirely in your browser.",
-  applicationName: "Credentials Validator",
+    "Check an image's Content Credentials to see whether AI use was declared, who signed it, and what edits were made. Runs entirely in your browser.",
+  applicationName: "AI Label Check",
   appleWebApp: {
     capable: true,
-    title: "Credentials",
+    title: "AI Label Check",
     statusBarStyle: "black-translucent",
   },
 };
@@ -46,7 +46,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 <path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.2-7.5 9.5-4.3-1.3-7.5-4.9-7.5-9.5V6z" />
                 <path d="M8.8 12.2l2.2 2.2 4.3-4.6" />
               </svg>
-              <span>Credentials Validator</span>
+              <span>AI Label Check</span>
             </Link>
             <div className="flex items-center gap-3">
               <span className="hidden items-center gap-2 rounded-full border border-border px-3 py-1 font-mono text-xs text-muted sm:flex">

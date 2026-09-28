@@ -23,6 +23,9 @@
 # misc
 .DS_Store
 *.pem
+# Public CA certificates only (no private keys): the C2PA trust list and test roots
+!/public/trust/*.pem
+!/tests/fixtures/certs/*.pem
 
 # debug
 npm-debug.log*

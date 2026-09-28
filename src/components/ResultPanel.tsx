@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { CredentialSummary, TrustLevel, ValidationOutcome } from "@/lib/credentials";
 import { sourceTypeName } from "@/lib/credentials";
+import type { OriginSignal } from "@/lib/image-origin";
 
 const RED_TONE_INVALID = "border-danger/50 bg-danger/[0.08]";
 
@@ -220,30 +221,85 @@ function Credentials({ summary, onReset }: { summary: CredentialSummary; onReset
   );
 }
 
+function Reasons({ reasons }: { reasons: string[] }) {
+  return (
+    <ul className="mt-3 flex flex-col gap-1 border-t border-warn/30 pt-3 text-sm text-foreground/75">
+      {reasons.map((reason) => (
+        <li key={reason} className="flex gap-2">
+          <span aria-hidden>·</span>
+          {reason}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Explains what a missing label can and can't tell you, based on file clues. */
+function OriginNote({ origin }: { origin: OriginSignal }) {
+  if (origin.kind === "screenshot") {
+    const marked = origin.certainty === "marked";
+    return (
+      <div className="rounded-2xl border border-warn/40 bg-warn/[0.06] p-5" data-testid="origin-note" data-certainty={origin.certainty}>
+        <div className="flex items-center gap-2.5">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-warn" aria-hidden>
+            <rect x="6" y="2.5" width="12" height="19" rx="2.5" />
+            <path d="M3 9V6M3 18v-3M21 9V6M21 18v-3" />
+          </svg>
+          <h3 className="text-base font-semibold">{marked ? "This is a screenshot" : "This looks like a screenshot"}</h3>
+        </div>
+        <p className="mt-2 text-sm leading-relaxed text-foreground/85">
+          {marked ? "Screenshots" : "If it is one, it"} don&apos;t carry over the original image&apos;s Content Credentials, so any
+          AI label the original had is gone. <strong>A missing label here doesn&apos;t mean the image isn&apos;t AI-generated.</strong>{" "}
+          If you can, check the original file instead.
+        </p>
+        <Reasons reasons={origin.reasons} />
+      </div>
+    );
+  }
+  if (origin.kind === "no-camera-data") {
+    return (
+      <div className="rounded-2xl border border-border bg-surface p-5" data-testid="origin-note">
+        <h3 className="text-base font-semibold">No camera information either</h3>
+        <p className="mt-2 text-sm leading-relaxed text-muted">
+          The file doesn&apos;t record what camera or app made it, so its origin can&apos;t be told from the file itself. That&apos;s
+          common for AI-generated images and downloads, but also for many edited or re-saved photos.
+        </p>
+      </div>
+    );
+  }
+  return null;
+}
+
 export default function ResultPanel({ outcome, onReset }: { outcome: ValidationOutcome; onReset: () => void }) {
   if (outcome.status === "credentials") {
     return <Credentials summary={outcome.summary} onReset={onReset} />;
   }
 
   if (outcome.status === "none") {
+    const origin = outcome.origin;
+    const screenshot = origin?.kind === "screenshot";
     return (
-      <div className="flex min-h-[300px] flex-col items-center justify-center gap-4 rounded-2xl border border-border bg-surface p-8 text-center" data-testid="result-none">
-        <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-surface-2 text-muted">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.2-7.5 9.5-4.3-1.3-7.5-4.9-7.5-9.5V6z" />
-            <path d="M9.5 9.5l5 5M14.5 9.5l-5 5" />
-          </svg>
-        </span>
-        <div className="flex max-w-sm flex-col gap-2">
-          <h2 className="text-lg font-semibold">No digital signature found</h2>
-          <p className="text-sm leading-relaxed text-muted">
-            This image has no Content Credentials. That doesn&apos;t mean it&apos;s fake — most images don&apos;t carry
-            them yet, and many sites strip them on upload.
-          </p>
+      <div className="flex flex-col gap-4" data-testid="result-none" data-origin={origin?.kind}>
+        <div className={`flex flex-col items-center justify-center gap-4 rounded-2xl border border-border bg-surface p-8 text-center ${screenshot ? "" : "min-h-[300px]"}`}>
+          <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-surface-2 text-muted">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.2-7.5 9.5-4.3-1.3-7.5-4.9-7.5-9.5V6z" />
+              <path d="M9.5 9.5l5 5M14.5 9.5l-5 5" />
+            </svg>
+          </span>
+          <div className="flex max-w-sm flex-col gap-2">
+            <h2 className="text-lg font-semibold">No digital signature found</h2>
+            <p className="text-sm leading-relaxed text-muted">
+              {screenshot
+                ? "This image has no Content Credentials, so there's no AI label to read."
+                : "This image has no Content Credentials. That doesn't mean it's fake — most images don't carry them yet, and many sites strip them on upload."}
+            </p>
+          </div>
+          <button type="button" onClick={onReset} className="rounded-full border border-border px-4 py-2 text-sm hover:bg-surface-2">
+            Check another image
+          </button>
         </div>
-        <button type="button" onClick={onReset} className="rounded-full border border-border px-4 py-2 text-sm hover:bg-surface-2">
-          Check another image
-        </button>
+        {origin && <OriginNote origin={origin} />}
       </div>
     );
   }

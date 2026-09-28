@@ -3,6 +3,7 @@
 import type { C2pa, Context, Reader } from "@contentauth/c2pa-web";
 import sdkPackage from "@contentauth/c2pa-web/package.json";
 import { summarizeManifestStore, type ValidationOutcome } from "./credentials";
+import { analyzeOrigin } from "./image-origin";
 
 // Copied from the installed @contentauth/c2pa-web by scripts/copy-c2pa-wasm.mjs.
 // The version stamp keeps browser and service-worker caches from pairing a new
@@ -108,6 +109,14 @@ function formatMb(bytes: number): string {
 }
 
 export async function validateFile(file: File): Promise<ValidationOutcome> {
+  const outcome = await readCredentials(file);
+  if (outcome.status !== "none") return outcome;
+  // No label: look for clues (screenshot, no camera data) that explain why.
+  const origin = await analyzeOrigin(file).catch(() => ({ kind: "unknown" as const }));
+  return { status: "none", origin };
+}
+
+async function readCredentials(file: File): Promise<ValidationOutcome> {
   if (file.size > MAX_FILE_BYTES) {
     return {
       status: "error",

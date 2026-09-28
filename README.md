@@ -62,7 +62,7 @@ on the [official C2PA trust list](https://github.com/c2pa-org/conformance-public
 ## Deploying
 
 The app is fully static and needs no server-side secrets. On Vercel, import the repository and
-deploy with the defaults. On any other host, run `npm ci && npm run build && npm start` (Node 20.9+).
+deploy with the defaults; `vercel.json` pins the framework to Next.js so it isn't misdetected. On any other host, run `npm ci && npm run build && npm start` (Node 20.9+).
 
 - `npm ci` / `npm run build` copy the Wasm binary into `public/c2pa/`, so no extra build step is
   needed.

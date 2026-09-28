@@ -92,7 +92,12 @@ export default function PrivacyPage() {
       </Section>
 
       <Section title="Contact">
-        <p>Questions about privacy: [YOUR CONTACT EMAIL].</p>
+        <p>
+          Questions about privacy:{" "}
+          <a href="mailto:hello.ailabelcheck@gmail.com" className="underline underline-offset-4">
+            hello.ailabelcheck@gmail.com
+          </a>
+        </p>
       </Section>
 
       <Link href="/" className="self-start text-sm text-muted underline-offset-4 hover:text-foreground hover:underline">

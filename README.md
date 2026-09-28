@@ -157,8 +157,8 @@ deploy with the defaults; `vercel.json` pins the framework to Next.js so it isn'
   only, never file names, contents or links; the endpoint is app-only and rate-limited (10/min
   per IP, `ERROR_REPORT_LIMIT_PER_MINUTE`). Vercel keeps logs only briefly on the Hobby plan; add
   a log drain or an error service later if you need history or alerts.
-- **Privacy page**: `/privacy` describes all of the above. Replace `[YOUR CONTACT EMAIL]` before
-  launch, and update the page whenever you add tracking, logging or accounts.
+- **Privacy page**: `/privacy` describes all of the above; the contact address is
+  `hello.ailabelcheck@gmail.com`. Update the page whenever you add tracking, logging or accounts.
 
 ## Operations checklist
 

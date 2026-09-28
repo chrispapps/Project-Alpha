@@ -8,6 +8,10 @@ test("the privacy page is linked from every page", async ({ page }) => {
   await expect(page).toHaveURL(/\/privacy$/);
   await expect(page.getByRole("heading", { name: "What happens to what you check" })).toBeVisible();
   await expect(page.getByText("files you upload never leave your device")).toBeVisible();
+  await expect(page.getByRole("link", { name: "hello.ailabelcheck@gmail.com" })).toHaveAttribute(
+    "href",
+    "mailto:hello.ailabelcheck@gmail.com",
+  );
 });
 
 test("loads cookieless analytics from this site only", async ({ page }) => {

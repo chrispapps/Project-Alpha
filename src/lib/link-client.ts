@@ -15,8 +15,10 @@ export type LinkOutcome =
 export async function fetchLink(url: string, signal?: AbortSignal): Promise<LinkOutcome> {
   let res: Response;
   try {
-    res = await fetch(`/api/fetch-media?url=${encodeURIComponent(url)}`, {
-      headers: { "x-ai-label-check": "1" },
+    res = await fetch("/api/fetch-media", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-ai-label-check": "1" },
+      body: JSON.stringify({ url }),
       signal,
     });
   } catch {

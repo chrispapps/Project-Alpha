@@ -81,8 +81,14 @@ runs in the browser and nothing is stored. Because it makes requests from the se
   CSP, so a fetched SVG or similar can never run as a page on this site.
 - **App-only**: requests must carry the `x-ai-label-check` header. Browsers won't send it
   cross-site without a CORS approval this route never gives, so other websites can't use it as a
-  proxy. Scripts can still call it directly, so consider a Vercel Firewall rate-limit rule on
-  `/api/fetch-media` once the app has traffic.
+  proxy.
+- **Links stay out of logs**: the route is `POST` with the link in the JSON body, so checked
+  addresses don't appear in hosting request logs.
+- **Rate limit**: 20 requests per minute per IP (`LINK_RATE_LIMIT_PER_MINUTE`), returning `429`
+  with `Retry-After` (`src/lib/server/rate-limit.ts`). Counts live in each server instance's
+  memory, so it's a brake rather than a hard quota; for a strict limit add a Vercel Firewall
+  rate-limit rule on `/api/fetch-media`. Requests without a proxy IP header (local runs, tests)
+  aren't limited.
 - **Web pages**: a link to a page returns the image/video it features (`og:image`, `og:video`) so
   the user can pick one.
 - **Dropbox and Google Drive share links** are converted to direct downloads
@@ -139,6 +145,20 @@ deploy with the defaults; `vercel.json` pins the framework to Next.js so it isn'
   (`'wasm-unsafe-eval'`, `blob:` workers, `https:` fetches for remote manifests) and nothing more,
   plus HSTS, `nosniff` and a strict referrer policy. If you add analytics or error reporting, add
   their origins to `connect-src` / `script-src`.
+
+## Monitoring
+
+- **Visitor stats**: Vercel Web Analytics (`src/components/SiteAnalytics.tsx`), cookieless, with
+  query strings removed before a view is recorded. Turn it on in the Vercel project's
+  **Analytics** tab; until then the script is simply not served.
+- **Crash reports**: uncaught browser errors and render errors (`src/app/error.tsx`) are posted to
+  `/api/report-error` and written to the server log as `[client-error] {…}`. Find them in Vercel
+  → **Logs** by searching `client-error`. Reports carry the message, stack, page path and browser
+  only, never file names, contents or links; the endpoint is app-only and rate-limited (10/min
+  per IP, `ERROR_REPORT_LIMIT_PER_MINUTE`). Vercel keeps logs only briefly on the Hobby plan; add
+  a log drain or an error service later if you need history or alerts.
+- **Privacy page**: `/privacy` describes all of the above; the contact address is
+  `hello.ailabelcheck@gmail.com`. Update the page whenever you add tracking, logging or accounts.
 
 ## Operations checklist
 

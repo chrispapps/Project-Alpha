@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
+import ErrorReporter from "@/components/ErrorReporter";
+import SiteAnalytics from "@/components/SiteAnalytics";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -60,10 +62,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <div className="relative z-10 flex flex-1 flex-col">{children}</div>
         <footer className="relative z-10 border-t border-border/70">
           <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-6 text-xs text-muted sm:flex-row sm:justify-between sm:px-6">
-            <span>Reads C2PA manifests with the open-source Content Authenticity SDK.</span>
+            <span>
+              Reads C2PA manifests with the open-source Content Authenticity SDK ·{" "}
+              <Link href="/privacy" className="underline-offset-4 hover:text-foreground hover:underline">
+                Privacy
+              </Link>
+            </span>
             <span>Credentials show who signed a file — not whether its contents are true.</span>
           </div>
         </footer>
+        <ErrorReporter />
+        <SiteAnalytics />
       </body>
     </html>
   );

@@ -1,7 +1,12 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 import { FIXTURE_ORIGIN } from "../playwright.config";
 
 const APP_HEADER = { "x-ai-label-check": "1" };
+
+/** Calls the link fetcher the way the app does: a POST with the link in the body. */
+function fetchMedia(request: APIRequestContext, url: string, headers: Record<string, string> = APP_HEADER) {
+  return request.post("/api/fetch-media", { headers, data: { url } });
+}
 
 async function checkLink(page: Page, url: string) {
   await page.goto("/");
@@ -69,7 +74,7 @@ test.describe("link fetcher security", () => {
     "https://example.com:8443/photo.jpg",
   ]) {
     test(`blocks ${target}`, async ({ request }) => {
-      const res = await request.get(`/api/fetch-media?url=${encodeURIComponent(target)}`, { headers: APP_HEADER });
+      const res = await fetchMedia(request, target);
       expect(res.status()).toBe(403);
       expect((await res.json()).code).toBe("blocked");
     });
@@ -77,18 +82,18 @@ test.describe("link fetcher security", () => {
 
   test("blocks a redirect into a private address", async ({ request }) => {
     const url = `${FIXTURE_ORIGIN}/to-private`;
-    const res = await request.get(`/api/fetch-media?url=${encodeURIComponent(url)}`, { headers: APP_HEADER });
+    const res = await fetchMedia(request, url);
     expect(res.status()).toBe(403);
   });
 
   test("rejects requests that don't come from the app", async ({ request }) => {
-    const res = await request.get(`/api/fetch-media?url=${encodeURIComponent(`${FIXTURE_ORIGIN}/C.jpg`)}`);
+    const res = await fetchMedia(request, `${FIXTURE_ORIGIN}/C.jpg`, {});
     expect(res.status()).toBe(403);
   });
 
   test("serves fetched files as downloads that can't run on this site", async ({ request }) => {
     const url = `${FIXTURE_ORIGIN}/drawing.svg`;
-    const res = await request.get(`/api/fetch-media?url=${encodeURIComponent(url)}`, { headers: APP_HEADER });
+    const res = await fetchMedia(request, url);
     expect(res.status()).toBe(200);
     expect(res.headers()["content-disposition"]).toMatch(/^attachment/);
     expect(res.headers()["content-security-policy"]).toContain("sandbox");
@@ -101,4 +106,27 @@ test("explains that folder links can't be checked", async ({ page }) => {
   const error = page.getByTestId("link-error");
   await expect(error).toHaveAttribute("data-code", "folder");
   await expect(error).toContainText("Dropbox folder");
+});
+
+test.describe("link fetcher limits", () => {
+  test("only accepts POST, so links stay out of request logs", async ({ request }) => {
+    const res = await request.get(`/api/fetch-media?url=${encodeURIComponent(`${FIXTURE_ORIGIN}/C.jpg`)}`, { headers: APP_HEADER });
+    expect(res.status()).toBe(405);
+  });
+
+  test("rate-limits a single IP address", async ({ request }) => {
+    // A documentation address, so no other test shares this caller's count.
+    const headers = { ...APP_HEADER, "x-real-ip": "203.0.113.77" };
+    for (let i = 0; i < 20; i++) {
+      expect((await fetchMedia(request, "not a link", headers)).status()).toBe(400);
+    }
+    const limited = await fetchMedia(request, "not a link", headers);
+    expect(limited.status()).toBe(429);
+    expect(Number(limited.headers()["retry-after"])).toBeGreaterThan(0);
+    expect((await limited.json()).code).toBe("rate-limited");
+
+    // Other callers are unaffected.
+    const other = await fetchMedia(request, "not a link", { ...APP_HEADER, "x-real-ip": "203.0.113.78" });
+    expect(other.status()).toBe(400);
+  });
 });

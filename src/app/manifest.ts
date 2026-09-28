@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "AI Label Check",
     short_name: "AI Label Check",
     description:
-      "Was this made with AI? Read the Content Credentials in an image, video or audio file to see whether AI use was declared, who signed it, and what edits were made. Works offline; images never leave your device.",
+      "Shows you the verified label when an image, video or audio file has one, and tells you honestly when it doesn't: who signed it, whether it was captured with a camera or made with AI, and whether it was altered. Works offline; uploads never leave your device.",
     start_url: "/",
     scope: "/",
     display: "standalone",

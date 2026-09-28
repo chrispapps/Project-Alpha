@@ -11,6 +11,8 @@ export type TrustLevel = "trusted" | "valid" | "invalid";
 export type AiUsage =
   | { kind: "generated"; sourceType: string }
   | { kind: "composite"; sourceType: string }
+  /** Declared as captured by a camera or scanner: the "proof of real" signal. */
+  | { kind: "capture"; sourceType: string }
   | { kind: "none-declared" };
 
 export interface ActionSummary {
@@ -57,6 +59,9 @@ const AI_COMPOSITE = new Set([
   "compositeWithTrainedAlgorithmicMedia",
   "algorithmicallyEnhanced",
 ]);
+
+// IPTC digital source types for content recorded from the real world.
+const CAPTURED = new Set(["digitalCapture", "computationalCapture", "compositeCapture", "negativeFilm", "positiveFilm"]);
 
 const ACTION_LABELS: Record<string, string> = {
   "c2pa.created": "Created",
@@ -156,6 +161,9 @@ function readAiUsage(manifest: Manifest, actions: ActionSummary[]): AiUsage {
   if (generated) return { kind: "generated", sourceType: sourceTypeName(generated) };
   const composite = sourceTypes.find((t) => AI_COMPOSITE.has(sourceTypeName(t)));
   if (composite) return { kind: "composite", sourceType: sourceTypeName(composite) };
+  // Only claimed when nothing in the history declares AI (checked above).
+  const captured = sourceTypes.find((t) => CAPTURED.has(sourceTypeName(t)));
+  if (captured) return { kind: "capture", sourceType: sourceTypeName(captured) };
   return { kind: "none-declared" };
 }
 

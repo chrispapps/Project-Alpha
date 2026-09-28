@@ -54,7 +54,7 @@ for (const [name, code] of [
 test("shows the empty state for an image without credentials", async ({ page }) => {
   await upload(page, "no_manifest.jpg");
   await expect(page.getByTestId("result-none")).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByRole("heading", { name: "No digital signature found" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "No Content Credentials found" })).toBeVisible();
 
   await page.getByRole("button", { name: "Check another image" }).click();
   await expect(page.getByText("Drag & drop or upload an image")).toBeVisible();

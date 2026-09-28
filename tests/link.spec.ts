@@ -95,3 +95,10 @@ test.describe("link fetcher security", () => {
     expect(res.headers()["x-content-type-options"]).toBe("nosniff");
   });
 });
+
+test("explains that folder links can't be checked", async ({ page }) => {
+  await checkLink(page, "https://www.dropbox.com/sh/abc123/xyz?dl=0");
+  const error = page.getByTestId("link-error");
+  await expect(error).toHaveAttribute("data-code", "folder");
+  await expect(error).toContainText("Dropbox folder");
+});

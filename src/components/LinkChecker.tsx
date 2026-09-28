@@ -77,7 +77,8 @@ export default function LinkChecker({ onFile }: { onFile: (file: File, sourceUrl
           </button>
         </div>
         <p className="text-xs leading-relaxed text-muted">
-          We download the file through our server to check it, and don&apos;t keep it. Instagram, TikTok, YouTube and X
+          Direct file links, and Dropbox and Google Drive share links, work best. We download the file through our
+          server to check it, and don&apos;t keep it. Instagram, TikTok, YouTube and X
           remove Content Credentials, so look for their own AI label on those posts.
         </p>
       </form>

@@ -72,6 +72,11 @@ runs in the browser and nothing is stored. Because it makes requests from the se
   `/api/fetch-media` once the app has traffic.
 - **Web pages**: a link to a page returns the image/video it features (`og:image`, `og:video`) so
   the user can pick one.
+- **Dropbox and Google Drive share links** are converted to direct downloads
+  (`src/lib/server/share-links.ts`): Dropbox gets `dl=1`, Drive links go to
+  `drive.usercontent.google.com/download?…&confirm=t`. Folder links get a clear message, and if
+  either service still returns a page (private file, or Drive's virus-scan page for large files)
+  the user is told to check sharing or upload the file instead.
 - **Social platforms** (Instagram, TikTok, YouTube, Facebook, X, Threads, Snapchat, LinkedIn) are
   recognised before any request: they don't allow downloads and strip Content Credentials, so the
   app points people to the platform's own AI label instead.

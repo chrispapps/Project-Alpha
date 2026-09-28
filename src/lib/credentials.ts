@@ -1,3 +1,4 @@
+import type { OriginSignal } from "./image-origin";
 import type {
   Manifest,
   ManifestAssertion,
@@ -43,7 +44,7 @@ export interface CredentialSummary {
 
 export type ValidationOutcome =
   | { status: "credentials"; summary: CredentialSummary }
-  | { status: "none" }
+  | { status: "none"; origin?: OriginSignal }
   | { status: "error"; message: string };
 
 const AI_GENERATED = new Set([

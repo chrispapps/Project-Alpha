@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { MAX_FILE_BYTES, validateFile } from "@/lib/c2pa-client";
+import { MAX_FILE_BYTES, takeSharedFile, validateFile } from "@/lib/c2pa-client";
 import type { ValidationOutcome } from "@/lib/credentials";
 import ResultPanel from "./ResultPanel";
 
@@ -19,6 +19,7 @@ function formatBytes(bytes: number): string {
 export default function Validator() {
   const [state, setState] = useState<State>({ phase: "idle" });
   const [dragging, setDragging] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const runId = useRef(0);
   const inputId = useId();
@@ -30,6 +31,7 @@ export default function Validator() {
   }, [previewUrl]);
 
   const handleFile = useCallback(async (file: File) => {
+    setNotice(null);
     const id = ++runId.current;
     const url = URL.createObjectURL(file);
     setState({ phase: "reading", file, previewUrl: url });
@@ -37,6 +39,17 @@ export default function Validator() {
     if (id !== runId.current) return; // a newer file replaced this one
     setState({ phase: "done", file, previewUrl: url, outcome });
   }, []);
+
+  // An image shared from another app arrives via the service worker as /?shared=…
+  useEffect(() => {
+    const shared = new URLSearchParams(window.location.search).get("shared");
+    if (!shared) return;
+    window.history.replaceState(null, "", "/");
+    const failed = "The shared image didn't come through. Open the app once, then try sharing again.";
+    (shared === "1" ? takeSharedFile() : Promise.resolve(null))
+      .then((file) => (file ? handleFile(file) : setNotice(failed)))
+      .catch(() => setNotice(failed));
+  }, [handleFile]);
 
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -68,40 +81,47 @@ export default function Validator() {
 
   if (state.phase === "idle") {
     return (
-      <label
-        htmlFor={inputId}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={onDrop}
-        className={`group relative flex min-h-[340px] cursor-pointer flex-col items-center justify-center gap-5 rounded-2xl border border-dashed p-10 text-center transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-accent ${
-          dragging
-            ? "border-accent bg-accent/[0.06]"
-            : "border-border bg-surface/80 hover:border-muted/60 hover:bg-surface"
-        }`}
-      >
-        {input}
-        <span className="flex h-14 w-14 items-center justify-center rounded-xl border border-border bg-surface-2 text-accent transition-transform group-hover:-translate-y-0.5">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M12 15V4" />
-            <path d="M7.5 8.5L12 4l4.5 4.5" />
-            <path d="M4 15v3.5A1.5 1.5 0 005.5 20h13a1.5 1.5 0 001.5-1.5V15" />
-          </svg>
-        </span>
-        <span className="flex flex-col gap-1.5">
-          <span className="text-lg font-medium">
-            {dragging ? "Release to check this image" : "Drag & drop or upload an image"}
+      <div className="flex flex-col gap-4">
+        {notice && (
+          <p role="status" className="rounded-xl border border-warn/40 bg-warn/[0.06] px-4 py-3 text-sm" data-testid="notice">
+            {notice}
+          </p>
+        )}
+        <label
+          htmlFor={inputId}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={onDrop}
+          className={`group relative flex min-h-[340px] cursor-pointer flex-col items-center justify-center gap-5 rounded-2xl border border-dashed p-10 text-center transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-accent ${
+            dragging
+              ? "border-accent bg-accent/[0.06]"
+              : "border-border bg-surface/80 hover:border-muted/60 hover:bg-surface"
+          }`}
+        >
+          {input}
+          <span className="flex h-14 w-14 items-center justify-center rounded-xl border border-border bg-surface-2 text-accent transition-transform group-hover:-translate-y-0.5">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M12 15V4" />
+              <path d="M7.5 8.5L12 4l4.5 4.5" />
+              <path d="M4 15v3.5A1.5 1.5 0 005.5 20h13a1.5 1.5 0 001.5-1.5V15" />
+            </svg>
           </span>
-          <span className="text-sm text-muted">
-            JPEG, PNG, WebP, AVIF, HEIC, TIFF, DNG, SVG and more · up to {formatBytes(MAX_FILE_BYTES)}
+          <span className="flex flex-col gap-1.5">
+            <span className="text-lg font-medium">
+              {dragging ? "Release to check this image" : "Drag & drop or upload an image"}
+            </span>
+            <span className="text-sm text-muted">
+              JPEG, PNG, WebP, AVIF, HEIC, TIFF, DNG, SVG and more · up to {formatBytes(MAX_FILE_BYTES)}
+            </span>
           </span>
-        </span>
-        <span className="rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background">
-          Choose file
-        </span>
-      </label>
+          <span className="rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background">
+            Choose file
+          </span>
+        </label>
+      </div>
     );
   }
 

@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import AppShell from "@/components/AppShell";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -17,6 +18,17 @@ export const metadata: Metadata = {
   title: "Content Credentials Validator",
   description:
     "Check an image for C2PA Content Credentials — who signed it, what was done to it, and whether AI was involved. Runs entirely in your browser.",
+  applicationName: "Credentials Validator",
+  appleWebApp: {
+    capable: true,
+    title: "Credentials",
+    statusBarStyle: "black-translucent",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0a0c10",
+  colorScheme: "dark",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -36,10 +48,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               </svg>
               <span>Credentials Validator</span>
             </Link>
-            <span className="hidden items-center gap-2 rounded-full border border-border px-3 py-1 font-mono text-xs text-muted sm:flex">
-              <span className="h-1.5 w-1.5 rounded-full bg-valid" aria-hidden />
-              Runs locally · files never leave your browser
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="hidden items-center gap-2 rounded-full border border-border px-3 py-1 font-mono text-xs text-muted sm:flex">
+                <span className="h-1.5 w-1.5 rounded-full bg-valid" aria-hidden />
+                Runs locally · files never leave your device
+              </span>
+              <AppShell />
+            </div>
           </div>
         </header>
         <div className="relative z-10 flex flex-1 flex-col">{children}</div>

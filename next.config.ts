@@ -15,6 +15,7 @@ const contentSecurityPolicy = [
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
+  "manifest-src 'self'",
   "frame-ancestors 'none'",
 ].join("; ");
 
@@ -33,10 +34,16 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // Not content-hashed, so let browsers revalidate after a day.
+        // Requested with ?v=<sdk version>, so a given URL never changes.
         source: "/c2pa/:file*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
+      {
+        // Browsers must always pick up a new service worker promptly.
+        source: "/sw.js",
         headers: [
-          { key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" },
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
         ],
       },
       {

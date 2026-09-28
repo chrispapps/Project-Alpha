@@ -45,6 +45,23 @@ npm run dev        # http://localhost:3000
 - `src/components/` holds the drop zone (`Validator.tsx`) and the results (`ResultPanel.tsx`), with
   states for valid, invalid/tampered, no credentials, and unreadable files.
 
+## Installable app
+
+The validator is a Progressive Web App (PWA):
+
+- **Install**: Chrome, Edge and Android show an "Install app" button in the header; on iPhone and
+  iPad use Share → *Add to Home Screen*. It opens full-screen with its own icon.
+- **Offline**: `public/sw.js` caches the page, its scripts, the C2PA Wasm binary and the trust list
+  as they're used, so after one check (or right after installing) images can be checked with no
+  connection.
+- **Share to the app** (Android and ChromeOS): once installed, the app appears in the system share
+  sheet. The service worker receives the shared image and the page checks it. iOS doesn't support
+  share targets for web apps.
+- **Updates**: pages are fetched network-first, so a deploy shows up on the next launch. The Wasm
+  URL carries the SDK version (`?v=`), so a cached binary can never be paired with a newer SDK.
+
+When changing `public/sw.js` in a way that invalidates old caches, bump `SHELL_CACHE`.
+
 ## Trust list
 
 "Content Credentials verified" means the signing certificate chains to a certificate authority
@@ -62,7 +79,7 @@ on the [official C2PA trust list](https://github.com/c2pa-org/conformance-public
 ## Deploying
 
 The app is fully static and needs no server-side secrets. On Vercel, import the repository and
-deploy with the defaults. On any other host, run `npm ci && npm run build && npm start` (Node 20.9+).
+deploy with the defaults; `vercel.json` pins the framework to Next.js so it isn't misdetected. On any other host, run `npm ci && npm run build && npm start` (Node 20.9+).
 
 - `npm ci` / `npm run build` copy the Wasm binary into `public/c2pa/`, so no extra build step is
   needed.
@@ -77,6 +94,9 @@ deploy with the defaults. On any other host, run `npm ci && npm run build && npm
   request and on `main`. Protect `main` so it requires this check.
 - **Trust list PRs**: the refresh workflow needs *Settings → Actions → General → Allow GitHub
   Actions to create and approve pull requests* enabled.
+- **Test the app on real phones** before announcing it: install it, check an image offline and, on
+  Android, share an image to it. Also confirm that a photo with Content Credentials picked from the
+  phone's gallery still shows them; some photo pickers hand over a converted copy.
 - **SDK updates**: `@contentauth/c2pa-web` is pre-1.0 and changes its API between minor versions.
   Update it deliberately and let the end-to-end tests confirm the results still read correctly.
 - **Privacy**: files are processed in the browser and never uploaded. The one exception is the

@@ -12,6 +12,7 @@ import http from "node:http";
 import https from "node:https";
 import net from "node:net";
 import { extensionType } from "@/lib/media";
+import { providerPageMessage, rewriteShareLink } from "./share-links";
 
 export const MAX_MEDIA_BYTES = 200 * 1024 * 1024;
 const MAX_PAGE_BYTES = 512 * 1024;
@@ -21,7 +22,17 @@ const USER_AGENT = "AILabelCheck/1.0 (+Content Credentials checker)";
 
 export type FetchError = {
   kind: "error";
-  code: "invalid-url" | "blocked" | "social" | "http" | "not-media" | "too-large" | "timeout" | "network";
+  code:
+    | "invalid-url"
+    | "blocked"
+    | "social"
+    | "folder"
+    | "provider-page"
+    | "http"
+    | "not-media"
+    | "too-large"
+    | "timeout"
+    | "network";
   message: string;
   platform?: string;
 };
@@ -242,6 +253,17 @@ export async function fetchMedia(raw: string): Promise<FetchResult> {
   let url = checkUrl(raw);
   if (!(url instanceof URL)) return url;
 
+  // Dropbox and Google Drive share links open a preview page; ask for the file itself.
+  const share = rewriteShareLink(url);
+  if (share.kind === "folder") {
+    return error("folder", `That's a ${share.provider} folder. Open it and copy the link to a single file.`);
+  }
+  if (share.kind === "file") {
+    const direct = checkUrl(share.url.href);
+    if (!(direct instanceof URL)) return direct;
+    url = direct;
+  }
+
   let res: http.IncomingMessage;
   for (let hop = 0; ; hop++) {
     try {
@@ -271,6 +293,11 @@ export async function fetchMedia(raw: string): Promise<FetchResult> {
   const length = Number(res.headers["content-length"]) || undefined;
 
   if (declared === "text/html" || declared === "application/xhtml+xml") {
+    const providerMessage = providerPageMessage(url);
+    if (providerMessage) {
+      res.destroy();
+      return error("provider-page", providerMessage);
+    }
     const html = (await readUpTo(res, MAX_PAGE_BYTES)).toString("utf8");
     return pageCandidates(html, url);
   }

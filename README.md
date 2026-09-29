@@ -66,6 +66,33 @@ npm run dev        # http://localhost:3000
 - `src/components/` holds the drop zone (`Validator.tsx`) and the results (`ResultPanel.tsx`), with
   states for valid, invalid/tampered, no credentials, and unreadable files.
 
+## Invisible watermarks (TrustMark)
+
+Images without Content Credentials can be checked for an [Adobe TrustMark](https://github.com/adobe/trustmark)
+watermark (variant Q), the watermark C2PA recommends alongside Content Credentials. It survives
+screenshots, resizing and re-compression, so finding one shows an image once had a label that has
+since been stripped. Everything runs on the device (`src/lib/trustmark/`):
+
+- **Opt-in download**: the detector model is ~45 MB, so the app asks first, then saves it in the
+  browser (Cache API, `cc-models`) and runs automatically after that. By default it's fetched from
+  Adobe's server (`NEXT_PUBLIC_TRUSTMARK_MODEL_BASE` switches to self-hosting, e.g. `/trustmark/`
+  after `npm run trustmark:models`); either way its SHA-256 is checked against `models.json` before
+  use. Self-hosting on Vercel means paying for every 45 MB first download.
+- **Runtime**: ONNX Runtime Web (WebAssembly, single-threaded), loaded only when a check runs; its
+  files are copied to `public/ort/<version>/` on install/build.
+- **Error correction**: `bch.ts` is a TypeScript port of Adobe's readable Python `bchecc.py`
+  (not the obfuscated JS in Adobe's example), verified against 2,400 Python-generated cases; 200 of
+  them are a regression test. It rejects locator polynomials without a full set of roots, which is
+  stricter than Adobe's Python.
+- **No false alarms**: error correction alone accepted a watermark in an unwatermarked test image
+  (weak schemas accept a few percent of random bit patterns). A detection also needs a mean decoder
+  confidence ≥ 3; real watermarks measured 7.5–9.7 (including screenshots and JPEG copies), clean
+  images 0.05–0.7. Only the schema the watermark declares is tried, as in Adobe's Python.
+- **Limits**: variant Q only (Adobe's C2PA default; variant P isn't checked); images under 128 px
+  aren't checked; finding the original credentials from the watermark ID (C2PA soft-binding lookup)
+  isn't built yet. Google's SynthID has no public detector, and Meta's Video Seal and AudioSeal
+  would need converting from Python first.
+
 ## Checking links
 
 Browsers can't download most files from other sites, so "Check a link" goes through

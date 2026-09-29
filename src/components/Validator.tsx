@@ -206,7 +206,7 @@ export default function Validator() {
             </p>
           </div>
         ) : (
-          <ResultPanel outcome={state.outcome} kind={state.kind} onReset={reset} />
+          <ResultPanel outcome={state.outcome} kind={state.kind} file={state.file} onReset={reset} />
         )}
       </section>
     </div>

@@ -3,6 +3,7 @@ import type { CredentialSummary, TrustLevel, ValidationOutcome } from "@/lib/cre
 import { sourceTypeName } from "@/lib/credentials";
 import type { OriginSignal } from "@/lib/image-origin";
 import { NOUN, type MediaKind } from "@/lib/media";
+import WatermarkCheck from "./WatermarkCheck";
 
 const RED_TONE_INVALID = "border-danger/50 bg-danger/[0.08]";
 
@@ -300,10 +301,13 @@ function OriginNote({ origin }: { origin: OriginSignal }) {
 export default function ResultPanel({
   outcome,
   kind = "image",
+  file,
   onReset,
 }: {
   outcome: ValidationOutcome;
   kind?: MediaKind;
+  /** The checked file, for the invisible-watermark check. */
+  file?: File;
   onReset: () => void;
 }) {
   const noun = NOUN[kind];
@@ -336,6 +340,7 @@ export default function ResultPanel({
           </button>
         </div>
         {origin && <OriginNote origin={origin} />}
+        {file && kind === "image" && <WatermarkCheck key={`${file.name}:${file.size}:${file.lastModified}`} file={file} />}
       </div>
     );
   }

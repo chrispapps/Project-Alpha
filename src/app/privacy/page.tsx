@@ -46,6 +46,15 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
+      <Section title="Invisible watermark check">
+        <p>
+          For images without Content Credentials, you can check for an invisible Adobe TrustMark watermark. The image is
+          checked on your device and isn&apos;t uploaded. The first time, your browser downloads the detector (about 45
+          MB) from Adobe&apos;s server, so Adobe sees that download request from your IP address, but not your image.
+          The detector is then saved in your browser for later checks.
+        </p>
+      </Section>
+
       <Section title="Links you paste">
         <p>
           Most sites don&apos;t let browsers download their files directly, so our server downloads the file and streams it

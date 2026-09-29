@@ -20,12 +20,18 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
     },
     {
-      command: `npm run build && npx next start -p ${PORT}`,
+      // Self-hosts the TrustMark models so the watermark tests don't depend on Adobe's server at runtime.
+      command: `npm run trustmark:models && npm run build && npx next start -p ${PORT}`,
       url: `http://127.0.0.1:${PORT}`,
-      timeout: 180_000,
+      timeout: 300_000,
       reuseExistingServer: !process.env.CI,
-      // The link fetcher refuses private addresses; allow only the local fixture server.
-      env: { MEDIA_FETCH_ALLOW_HOSTS: "127.0.0.1:3199" },
+      env: {
+        // The link fetcher refuses private addresses; allow only the local fixture server.
+        MEDIA_FETCH_ALLOW_HOSTS: "127.0.0.1:3199",
+        NEXT_PUBLIC_TRUSTMARK_MODEL_BASE: "/trustmark/",
+        // Lets Node's fetch use HTTPS_PROXY where one is configured; no effect otherwise.
+        NODE_USE_ENV_PROXY: "1",
+      },
     },
   ],
 });

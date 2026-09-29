@@ -8,6 +8,8 @@
 
 const SHELL_CACHE = "cc-shell-v1";
 const SHARE_CACHE = "cc-share";
+// Watermark detector models, cached by the page itself (src/lib/trustmark/detect.ts).
+const MODEL_CACHE = "cc-models";
 const SHARED_FILE_KEY = "/__shared-file";
 const PRECACHE = ["/", "/trust/C2PA-TRUST-LIST.pem", "/icons/icon-192.png", "/icons/icon-512.png"];
 
@@ -26,7 +28,7 @@ self.addEventListener("activate", (event) => {
       .keys()
       .then((keys) =>
         Promise.all(
-          keys.filter((key) => key !== SHELL_CACHE && key !== SHARE_CACHE).map((key) => caches.delete(key)),
+          keys.filter((key) => key !== SHELL_CACHE && key !== SHARE_CACHE && key !== MODEL_CACHE).map((key) => caches.delete(key)),
         ),
       )
       .then(() => self.clients.claim()),
@@ -134,6 +136,9 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate") {
     event.respondWith(networkFirstPage(request));
   } else if (url.pathname.startsWith("/_next/static/")) {
+    event.respondWith(cacheFirst(request));
+  } else if (url.pathname.startsWith("/ort/")) {
+    // Versioned path (/ort/<version>/), so it never changes in place.
     event.respondWith(cacheFirst(request));
   } else if (url.pathname.startsWith("/c2pa/")) {
     event.respondWith(wasm(request));

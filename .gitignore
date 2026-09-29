@@ -49,3 +49,9 @@ next-env.d.ts
 # playwright
 /test-results/
 /playwright-report/
+
+# ONNX Runtime WebAssembly files, copied from node_modules on install/dev/build
+/public/ort/
+
+# Self-hosted TrustMark models (npm run trustmark:models); normally loaded from Adobe on demand
+/public/trustmark/

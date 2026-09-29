@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Third-party runtime files copied from node_modules at install/build time.
+    "public/ort/**",
+    "public/c2pa/**",
   ]),
 ]);
 

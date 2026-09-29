@@ -3,21 +3,23 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "postinstall": "node scripts/copy-c2pa-wasm.mjs",
-    "predev": "node scripts/copy-c2pa-wasm.mjs",
+    "postinstall": "node scripts/copy-c2pa-wasm.mjs && node scripts/copy-ort-wasm.mjs",
+    "predev": "node scripts/copy-c2pa-wasm.mjs && node scripts/copy-ort-wasm.mjs",
     "dev": "next dev",
-    "prebuild": "node scripts/copy-c2pa-wasm.mjs",
+    "prebuild": "node scripts/copy-c2pa-wasm.mjs && node scripts/copy-ort-wasm.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test:e2e": "playwright test",
-    "trust:update": "node scripts/update-trust-list.mjs"
+    "trust:update": "node scripts/update-trust-list.mjs",
+    "trustmark:models": "node scripts/fetch-trustmark-models.mjs"
   },
   "dependencies": {
     "@contentauth/c2pa-web": "^0.15.2",
     "@vercel/analytics": "^2.0.1",
     "next": "16.3.6",
+    "onnxruntime-web": "^1.30.0",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },

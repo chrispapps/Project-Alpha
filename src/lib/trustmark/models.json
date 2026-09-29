@@ -1,0 +1,14 @@
+{
+  "variant": "Q",
+  "files": {
+    "decoder_Q.onnx": {
+      "sha256": "ee3268f057c9dabef680e169302f5973d0589feea86189ed229a896cc3aa88df",
+      "bytes": 47401222
+    },
+    "resizer.onnx": {
+      "sha256": "e7d6014def382e20d3748fc793761bfddce62578a5905fa6ef3d348c69a787c3",
+      "bytes": 454
+    }
+  },
+  "source": "https://cai-watermark.adobe.net/watermarking/trustmark-models/"
+}
